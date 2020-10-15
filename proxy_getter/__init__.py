@@ -80,4 +80,4 @@ def get_proxy():
         USED_PROXIES[proxy] = datetime.datetime.now()
         return res
     _read_proxies(force=True)
-    get_proxy()
+    return get_proxy()
