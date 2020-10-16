@@ -51,7 +51,7 @@ def _remove_proxy(proxy):
     LAST_PROXY_LIST.remove(proxy)
 
 
-def _check_proxy(proxy):
+def check_proxy(proxy):
     proxies = {
       'https': f'https://{proxy}'
     }
