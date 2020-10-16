@@ -70,7 +70,7 @@ def get_proxy():
         if res is not None:
             break
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            for proxy, status in executor.map(lambda e: (e, _check_proxy(e)), chunk):
+            for proxy, status in executor.map(lambda e: (e, check_proxy(e)), chunk):
                 if status:
                     if res is None:
                         res = proxy
