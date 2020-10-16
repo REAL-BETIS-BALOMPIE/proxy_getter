@@ -58,7 +58,7 @@ def check_proxy(proxy):
     try:
         response = requests.get(VERIFY_IP, proxies=proxies, timeout=5)
         return response.content.decode('utf-8') == proxy.split(':')[0]
-    except (requests.exceptions.ProxyError, requests.exceptions.ConnectTimeout):
+    except (requests.exceptions.ProxyError, requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout):
         return False
 
 
