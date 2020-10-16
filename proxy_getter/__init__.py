@@ -47,6 +47,10 @@ def _update_used_proxies():
             del USED_PROXIES[proxy]
 
 
+def _remove_proxy(proxy):
+    LAST_PROXY_LIST.remove(proxy)
+
+
 def _check_proxy(proxy):
     proxies = {
       'https': f'https://{proxy}'
@@ -56,10 +60,6 @@ def _check_proxy(proxy):
         return response.content.decode('utf-8') == proxy.split(':')[0]
     except (requests.exceptions.ProxyError, requests.exceptions.ConnectTimeout):
         return False
-
-
-def _remove_proxy(proxy):
-    LAST_PROXY_LIST.remove(proxy)
 
 
 def get_proxy():
