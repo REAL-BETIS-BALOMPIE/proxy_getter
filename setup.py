@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="proxy-getter-dander94",
-    version="0.1.3",
+    version="0.2.0",
     author="dander94",
     author_email="",
     description="Simple HTTPS Proxy Getter",
