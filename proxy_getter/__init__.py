@@ -11,15 +11,14 @@ USED_PROXIES = {}
 LAST_PROXY_LIST = []
 LAST_PROXY_LIST_DT = None
 
-MIN_AVAILABILITY = 80
-MIN_SPEED = 100
-MAX_RESP = 4000
 MIN_PROXY_TIME = 15 * 60
 
 LIST_LOCK = threading.Lock()
 REFRESH_ALLOWED = threading.Event()
 
 REFRESH_ALLOWED.set()
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:65.0) Gecko/20100101 Firefox/65.0'}
 
 
 def _chunks(lst, n):
@@ -37,7 +36,6 @@ def _chunks(lst, n):
 def _read_proxies(force=False):
     global LAST_PROXY_LIST_DT, LAST_PROXY_LIST
 
-    _update_used_proxies()
     if REFRESH_ALLOWED.is_set():
         REFRESH_ALLOWED.clear()
         if force or (
@@ -57,29 +55,35 @@ def _read_proxies(force=False):
     return res
 
 
-def _update_used_proxies():
-    with LIST_LOCK:
-        key_list = list(USED_PROXIES.keys())
-        for proxy in key_list:
-            if (datetime.datetime.now() - USED_PROXIES[proxy]).total_seconds() > MIN_PROXY_TIME:
-                del USED_PROXIES[proxy]
-
-
 def _remove_proxy(proxy):
     with LIST_LOCK:
+        if proxy in USED_PROXIES.keys():
+            del USED_PROXIES[proxy]
+
         try:
             LAST_PROXY_LIST.remove(proxy)
         except ValueError:
             pass
 
 
-def check_proxy(proxy):
+def _get_used_proxies():
+    with LIST_LOCK:
+        res = sorted(USED_PROXIES.keys(), key=lambda x: USED_PROXIES[x], reverse=True)
+    return res
+
+
+def check_proxy(proxy, check_against=None):
     proxies = {
       'https': f'https://{proxy}'
     }
+    valid = True
     try:
         response = requests.get(VERIFY_IP, proxies=proxies, timeout=5)
-        return response.content.decode('utf-8') == proxy.split(':')[0]
+        valid &= response.content.decode('utf-8') == proxy.split(':')[0]
+        if valid and check_against:
+            response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
+            valid &= response.status_code == 200
+        return valid
     except (
             requests.exceptions.ProxyError, requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout,
             requests.exceptions.SSLError, requests.Timeout, requests.ConnectionError
@@ -87,22 +91,24 @@ def check_proxy(proxy):
         return False
 
 
-def get_proxy():
-    _update_used_proxies()
-    to_read = _read_proxies().copy()
+def get_proxy(discard_proxy=None, check_against=None):
+    if discard_proxy:
+        _remove_proxy(discard_proxy)
+    to_read = _get_used_proxies() + _read_proxies().copy()
     res = None
     for chunk in _chunks(to_read, 5):
         if res is not None:
             break
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            for proxy, status in executor.map(lambda e: (e, check_proxy(e)), chunk):
+            for proxy, status in executor.map(lambda e: (e, check_proxy(e, check_against=check_against)), chunk):
                 if status:
                     if res is None:
                         res = proxy
                 else:
                     _remove_proxy(proxy)
-    if res is not None:
+    if res is None:
+        _read_proxies(force=True)
+        return get_proxy()
+    with LIST_LOCK:
         USED_PROXIES[res] = datetime.datetime.now()
-        return res
-    _read_proxies(force=True)
-    return get_proxy()
+    return res
