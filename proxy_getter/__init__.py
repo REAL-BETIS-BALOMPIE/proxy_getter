@@ -3,6 +3,8 @@ import datetime
 import requests
 import threading
 
+from pip._vendor.requests import request
+
 PROXY_URL = 'https://api.proxyscrape.com/?request=getproxies&proxytype=http&country=all&ssl=all&anonymity=all&ssl=yes'
 
 VERIFY_IP = "https://ipv4bot.whatismyipaddress.com"
@@ -84,10 +86,7 @@ def check_proxy(proxy, check_against=None):
             response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
             valid &= response.status_code == 200
         return valid
-    except (
-            requests.exceptions.ProxyError, requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout,
-            requests.exceptions.SSLError, requests.Timeout, requests.ConnectionError
-    ):
+    except requests.exceptions.RequestException:
         return False
 
 
