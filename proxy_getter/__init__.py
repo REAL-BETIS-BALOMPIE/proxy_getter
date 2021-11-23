@@ -73,7 +73,7 @@ def _get_used_proxies():
 
 def check_proxy(proxy, check_against=None):
     proxies = {
-        'https': f'http://{proxy}'
+        'https': f'https://{proxy}'
     }
     valid = True
     checker = ProxyChecker()
