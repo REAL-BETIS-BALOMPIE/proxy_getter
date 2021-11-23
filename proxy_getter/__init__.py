@@ -81,12 +81,10 @@ def check_proxy(proxy, check_against=None):
     if result_checker == False:
         valid = False
     else:
-        print(result_checker)
         try:
             response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
             valid &= response.status_code == 200
         except requests.exceptions.RequestException as e:
-            print(e)
             valid = False
     return valid
 
