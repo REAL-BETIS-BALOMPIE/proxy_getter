@@ -3,11 +3,9 @@ import datetime
 import requests
 import threading
 
-from pip._vendor.requests import request
+from proxy_checker import ProxyChecker
 
 PROXY_URL = 'https://api.proxyscrape.com/?request=getproxies&proxytype=http&country=all&ssl=all&anonymity=all&ssl=yes'
-
-VERIFY_IP = "https://ipv4bot.whatismyipaddress.com"
 
 USED_PROXIES = {}
 LAST_PROXY_LIST = []
@@ -73,22 +71,24 @@ def _get_used_proxies():
         res = sorted(USED_PROXIES.keys(), key=lambda x: USED_PROXIES[x], reverse=True)
     return res
 
-
 def check_proxy(proxy, check_against=None):
     proxies = {
-      'https': f'https://{proxy}'
+        'https': f'http://{proxy}'
     }
     valid = True
-    try:
-        response = requests.get(VERIFY_IP, proxies=proxies, timeout=5)
-        valid &= response.content.decode('utf-8') == proxy.split(':')[0]
-        if valid and check_against:
+    checker = ProxyChecker()
+    result_checker = checker.check_proxy(proxy)
+    if result_checker == False:
+        valid = False
+    else:
+        print(result_checker)
+        try:
             response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
             valid &= response.status_code == 200
-        return valid
-    except requests.exceptions.RequestException:
-        return False
-
+        except requests.exceptions.RequestException as e:
+            print(e)
+            valid = False
+    return valid
 
 def get_proxy(discard_proxy=None, check_against=None):
     if discard_proxy:
