@@ -3,9 +3,7 @@ import datetime
 import requests
 import threading
 
-from proxy_checker import ProxyChecker
-
-PROXY_URL = 'https://api.proxyscrape.com/?request=getproxies&proxytype=http&country=all&ssl=all&anonymity=all&ssl=yes'
+PROXY_URL = 'https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies'
 
 USED_PROXIES = {}
 LAST_PROXY_LIST = []
@@ -71,22 +69,18 @@ def _get_used_proxies():
         res = sorted(USED_PROXIES.keys(), key=lambda x: USED_PROXIES[x], reverse=True)
     return res
 
+
 def check_proxy(proxy, check_against=None):
     proxies = {
         'https': f'https://{proxy}'
     }
-    valid = True
-    checker = ProxyChecker()
-    result_checker = checker.check_proxy(proxy)
-    if result_checker == False:
+    try:
+        response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
+        valid = response.status_code == 200
+    except requests.exceptions.RequestException as e:
         valid = False
-    else:
-        try:
-            response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
-            valid &= response.status_code == 200
-        except requests.exceptions.RequestException as e:
-            valid = False
     return valid
+
 
 def get_proxy(discard_proxy=None, check_against=None):
     if discard_proxy:
