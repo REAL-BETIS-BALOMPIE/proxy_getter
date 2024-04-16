@@ -8,6 +8,7 @@ PROXY_URL = 'https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayp
 USED_PROXIES = {}
 LAST_PROXY_LIST = []
 LAST_PROXY_LIST_DT = None
+LAST_PROXY_URL = PROXY_URL
 
 MIN_PROXY_TIME = 15 * 60
 
@@ -31,15 +32,23 @@ def _chunks(lst, n):
     yield chunk
 
 
-def _read_proxies(force=False):
-    global LAST_PROXY_LIST_DT, LAST_PROXY_LIST
+def _read_proxies(force=False, api_url=PROXY_URL):
+    global LAST_PROXY_LIST_DT, LAST_PROXY_LIST, LAST_PROXY_URL, USED_PROXIES
+
+    if LAST_PROXY_URL != api_url:
+        with LIST_LOCK:
+            LAST_PROXY_LIST_DT = None
+            LAST_PROXY_LIST = []
+            USED_PROXIES = {}
+            LAST_PROXY_URL = api_url
+            force = True
 
     if REFRESH_ALLOWED.is_set():
         REFRESH_ALLOWED.clear()
         if force or (
                 not LAST_PROXY_LIST_DT or
                 (datetime.datetime.now() - LAST_PROXY_LIST_DT).total_seconds() > MIN_PROXY_TIME):
-            response = requests.get(PROXY_URL)
+            response = requests.get(api_url)
             with LIST_LOCK:
                 LAST_PROXY_LIST = sorted(
                     filter(lambda x: ':' in x, response.content.decode('utf-8').split('\r\n')),
@@ -91,10 +100,10 @@ def check_proxy(proxy, check_against=None):
     return valid
 
 
-def get_proxy(discard_proxy=None, check_against=None):
+def get_proxy(discard_proxy=None, check_against=None, api_url=PROXY_URL):
     if discard_proxy:
         _remove_proxy(discard_proxy)
-    to_read = _get_used_proxies() + _read_proxies().copy()
+    to_read = _get_used_proxies() + _read_proxies(api_url=api_url).copy()
     res = None
     for chunk in _chunks(to_read, 5):
         if res is not None:
@@ -107,7 +116,7 @@ def get_proxy(discard_proxy=None, check_against=None):
                 else:
                     _remove_proxy(proxy)
     if res is None:
-        _read_proxies(force=True)
+        _read_proxies(force=True, api_url=api_url)
         return get_proxy()
     with LIST_LOCK:
         USED_PROXIES[res] = datetime.datetime.now()
