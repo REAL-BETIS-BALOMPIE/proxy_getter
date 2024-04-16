@@ -3,7 +3,7 @@ import datetime
 import requests
 import threading
 
-PROXY_URL = 'https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies'
+PROXY_URL = 'https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&protocol=http&proxy_format=protocolipport&format=text&timeout=500'
 
 USED_PROXIES = {}
 LAST_PROXY_LIST = []
