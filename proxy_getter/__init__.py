@@ -71,9 +71,18 @@ def _get_used_proxies():
 
 
 def check_proxy(proxy, check_against=None):
+    splits = proxy.split('://')
+    if len(splits) > 1:
+        protocol = splits[0]
+        url = splits[1]
+    else:
+        protocol = 'https'
+        url = proxy
+
     proxies = {
-        'https': f'https://{proxy}'
+        protocol: url,
     }
+
     try:
         response = requests.get(check_against, headers=HEADERS, proxies=proxies, timeout=(5, 10))
         valid = response.status_code == 200
